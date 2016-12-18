@@ -1,6 +1,6 @@
 <?php
 $config = array(
-	"server" => "localhost", // Usually local host.
+	"server" => "", // Usually local host.
 	"dbname" => "",
 	"username" => "",
 	"password" => ""
