@@ -9,34 +9,24 @@ $usr_password = $_POST['password'];
 $usr_username = stripcslashes($usr_username);
 $usr_password = stripcslashes($usr_password);
 $usr_password = password_hash($usr_password, PASSWORD_BCRYPT);
-
-try {
-    $db = new PDO("mysql:host={$server};dbname={$dbname}", $username, $password);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-}
-catch(PDOException $e) {
-     echo $e->getMessage();
-}
-
-$sql = $db->prepare("INSERT INTO users (id, username, password) VALUES (:id, :user, :pass)");
-$affected_rows = 0;
-try {
-	$affected_rows = $sql->execute(array(':id' => '', ':user' => $usr_username, ':pass' => $usr_password));
-}
-catch (PDOException $e) {
-    echo $e->getMessage() . "<br>"; //Handle duplicate id's
-}
-
-$usrCheckResult = $db->query("SELECT * FROM users WHERE username='{$usr_username}'");
-$usrCheckData = $usrCheckResult->fetch(PDO::FETCH_ASSOC);
-
-if (count($usrCheckData) == 0) { //Check if username exists already
-	if ($affected_rows != 0) { //Ensure nothing went wrong (redundant)
+$conn = new mysqli($server, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+} 
+$sql = "INSERT INTO users (id, username, password)
+VALUES ('', '{$usr_username}', '{$usr_password}')";
+$sqlUsernameCheck = "SELECT * FROM users WHERE username='{$usr_username}'";
+$usrCheckResult = $conn->query($sqlUsernameCheck);
+$usrCheckData = mysqli_fetch_assoc($usrCheckResult);
+$usrMatchPass = $usrCheckData["password"];
+if (strlen($usrMatchPass) <= 1) {
+	if ($conn->query($sql) === TRUE) {
 		echo "New record created successfully.";
 	} else {
-		echo "SQL State: " . $db->errorInfo()[0] . "<br>Error Code: " . $db->errorInfo()[1] . "<br>Error Message: " . $db->errorInfo()[2] . "<br>";
+		echo "Error: " . $sql . "<br>" . $conn->error;
 	}
 } else {
 	echo "Username already taken.";
 }
+$conn->close();
 ?>

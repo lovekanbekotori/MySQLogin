@@ -4,17 +4,12 @@ $server = $config['server'];
 $username = $config['username'];
 $password = $config['password'];
 $dbname = $config['dbname'];
-
-try {
-    $db = new PDO("mysql:host={$server};dbname={$dbname}", $username, $password);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$conn = new mysqli($server, $username, $password, $dbname);
+if ($conn->connect_error) {
+	die("Connection failed: " . $conn->connect_error);
 }
-catch(PDOException $e) {
-     echo $e->getMessage();
-}
-
-$sql = "SELECT COUNT(DISTINCT id) FROM users";
-$result = $db->query($sql);
-$count = $result->fetchColumn();
-echo $count;
+$sql = "SELECT MAX(id) FROM users";
+$result = $conn->query($sql);
+$result = mysqli_fetch_array($result);
+echo $result[0];
 ?>
