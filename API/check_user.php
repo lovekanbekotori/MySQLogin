@@ -1,33 +1,26 @@
 <?php
-include 'config.php';
-$server = $config['server'];
-$username = $config['username'];
-$password = $config['password'];
-$dbname = $config['dbname'];
-$usr_username = $_POST['username'];
-$usr_password = $_POST['password'];
-$usr_username = stripcslashes($usr_username);
-$usr_password = stripcslashes($usr_password);
 
-try {
-    $db = new PDO("mysql:host={$server};dbname={$dbname}", $username, $password);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-}
-catch(PDOException $e) {
-     echo $e->getMessage();
+require __DIR__  . '/db.php';
+
+$db = DB::connect();
+
+if (!isset($_POST['username'], $_POST['password']) || $db === false) {
+    die();
 }
 
-$sql = $db->prepare("SELECT * FROM users WHERE username=:username");
-try {
-	$sql->execute(array(':username' => $usr_username));
-	$rows = $sql->fetchAll(PDO::FETCH_ASSOC);
-	if (password_verify($usr_password, $rows[0]["password"])) {
-		echo 'true->' . strtolower($usr_username);
-	} else {
-		echo 'false->' . strtolower($usr_username);
-	}
+$findUser = $db->prepare("SELECT * FROM users WHERE username= :username LIMIT 1");
+$findUser = DB::execute($findUser, [
+    'username' => $_POST['username'],
+]);
+$foundUser = $findUser->fetch(PDO::FETCH_ASSOC);
+
+if (empty($foundUser)) {
+    // User does not exists.
+    die();
 }
-catch (PDOException $e) {
-    echo $e->getMessage() . "<br>";
+
+if (password_verify($_POST['password'], $foundUser['password'])) {
+    echo 'true';
+} else {
+    echo 'false';
 }
-?>

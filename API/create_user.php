@@ -1,42 +1,28 @@
 <?php
-include 'config.php';
-$server = $config['server'];
-$username = $config['username'];
-$password = $config['password'];
-$dbname = $config['dbname'];
-$usr_username = $_POST['username'];
-$usr_password = $_POST['password'];
-$usr_username = stripcslashes($usr_username);
-$usr_password = stripcslashes($usr_password);
-$usr_password = password_hash($usr_password, PASSWORD_BCRYPT);
 
-try {
-    $db = new PDO("mysql:host={$server};dbname={$dbname}", $username, $password);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-}
-catch(PDOException $e) {
-     echo $e->getMessage();
+require __DIR__  . '/db.php';
+
+$db = DB::connect();
+
+if (!isset($_POST['username'], $_POST['password']) || $db === false) {
+    die();
 }
 
-$sql = $db->prepare("INSERT INTO users (id, username, password) VALUES (:id, :user, :pass)");
-$affected_rows = 0;
-try {
-	$affected_rows = $sql->execute(array(':id' => '', ':user' => $usr_username, ':pass' => $usr_password));
-}
-catch (PDOException $e) {
-    echo $e->getMessage() . "<br>"; //Handle duplicate id's
+$findUser = $db->prepare("SELECT * FROM users WHERE username= :username LIMIT 1");
+$findUser = DB::execute($findUser, [
+    'username' => $_POST['username'],
+]);
+$foundUser = $findUser->fetch(PDO::FETCH_ASSOC);
+
+if (!empty($foundUser)) {
+    // User already exists.
+    die();
 }
 
-$usrCheckResult = $db->query("SELECT * FROM users WHERE username='{$usr_username}'");
-$usrCheckData = $usrCheckResult->fetch(PDO::FETCH_ASSOC);
+$addUser = $db->prepare('INSERT INTO users (username, password) VALUES (:username, :password)');
+$addUser = DB::execute($addUser, [
+    'username' => $_POST['username'],
+    'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+]);
 
-if (count($usrCheckData) == 0) { //Check if username exists already
-	if ($affected_rows != 0) { //Ensure nothing went wrong (redundant)
-		echo "New record created successfully.";
-	} else {
-		echo "SQL State: " . $db->errorInfo()[0] . "<br>Error Code: " . $db->errorInfo()[1] . "<br>Error Message: " . $db->errorInfo()[2] . "<br>";
-	}
-} else {
-	echo "Username already taken.";
-}
-?>
+// If we got to this step, it means all went well.
